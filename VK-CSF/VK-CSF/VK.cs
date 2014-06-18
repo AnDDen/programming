@@ -16,15 +16,17 @@ namespace VK_CSF
             public string id;
             public string fname;
             public string lname;
+            public int cource;
 
             public bool visit;
             public int[] edges;
 
-            public Node(string id, string fname, string lname)
+            public Node(string id, string fname, string lname, int cource)
             {
                 this.id = id;
                 this.fname = fname;
                 this.lname = lname;
+                this.cource = cource;
 
                 this.visit = false;
                 this.edges = new int[0];
@@ -48,7 +50,7 @@ namespace VK_CSF
 
         public void GetPeople() //добавить участников группы курса в граф
         {        
-            XmlDocument xml = new XmlDocument();
+            /*
             try
             {
                 xml.Load("temp/students.xml");
@@ -56,20 +58,39 @@ namespace VK_CSF
             catch
             {
                 WebClient client = new WebClient();
-                client.DownloadFile("https://api.vk.com/method/groups.getMembers.xml?group_id=csf2013&fields=first_name,last_name", "temp/students.xml");
+                client.DownloadFile("https://api.vk.com/method/groups.getMembers.xml?group_id=433986&fields=first_name,last_name", "temp/students.xml");
                 xml.Load("temp/students.xml");
             }
-
-            Console.WriteLine("File temp/students.xml has been loaded");
-
-            foreach (XmlNode p in xml.SelectNodes("/response/users/user"))
+            */
+            for (int i = 1; i <= 4; i++)
             {
-                string id = p.SelectSingleNode("uid").InnerText;
-                string fname = p.SelectSingleNode("first_name").InnerText;
-                string lname = p.SelectSingleNode("last_name").InnerText;
-                
-                Array.Resize<Node>(ref nodes, nodes.Length + 1);
-                nodes[nodes.Length - 1] = new Node(id, fname, lname);
+                string year = Convert.ToString(DateTime.Today.Year + 4 - i);
+
+                try
+                {
+                    WebClient client = new WebClient();
+                    client.DownloadFile("https://api.vk.com/method/users.search.xml?count=200&university_faculty=37802&university_year="+ year +"&access_token=2bbf3c580a625c2395a4cfe757b899716e70503c3d44d0589e353064e952a47ad2b1e7f2ef6ad8826a32f", "temp/students"+year+".xml");
+                }
+                catch
+                {
+                    Console.WriteLine("Error downloading XML");
+                    return;
+                }
+
+                XmlDocument xml = new XmlDocument();
+                xml.Load("temp/students"+ year +".xml");
+
+                Console.WriteLine("File temp/students"+ year +".xml has been loaded");
+
+                foreach (XmlNode p in xml.SelectNodes("/response/user"))
+                {
+                    string id = p.SelectSingleNode("uid").InnerText;
+                    string fname = p.SelectSingleNode("first_name").InnerText;
+                    string lname = p.SelectSingleNode("last_name").InnerText;
+
+                    Array.Resize<Node>(ref nodes, nodes.Length + 1);
+                    nodes[nodes.Length - 1] = new Node(id, fname, lname, i);
+                }
             }
         }
 
@@ -111,6 +132,12 @@ namespace VK_CSF
                     if (nodes[i].id == f)
                     {
                         nodes[num].AddEdge(i);
+                        int L = nodes[i].edges.Length;
+                        bool t = false;
+                        for (int j = 0; j < L; j++)
+                            if (nodes[i].edges[j] == num) t = true;
+                        if (!t)
+                            nodes[i].AddEdge(num);
                         break;
                     }
             }
@@ -156,7 +183,7 @@ namespace VK_CSF
             mark = new int[nodes.Length];
             int count = 0;
             for (int i = 0; i < nodes.Length; i++)
-                if ((mark[i] == 0) && (nodes[i].edges.Length != 0))
+                if ((mark[i] == 0) && (nodes[i].edges.Length > 0))
                 {
                     count++;
                     Component(i, count);
@@ -262,6 +289,27 @@ namespace VK_CSF
                 if (m > max) max = m;
             }
             Console.WriteLine("Maximum length = {0}", max);
+        }
+
+        //======== Дружбоемкость ========
+        public void Friendship()
+        {
+            int[] n = new int[4];
+            int[] sum = new int[4];
+            int s = 0;
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                Node p = nodes[i];
+                int c = p.cource - 1;
+                n[c]++;
+                sum[c] += p.edges.Length;
+            }
+            for (int i = 0; i < 4; i++)
+            {
+                s += sum[i];
+                Console.WriteLine("\nTotal count of people on cource {0}: {1}\nTotal count of friendship on cource {0}: {2}\nAverage friendship from cource {0}: {3}", i + 1, n[i], sum[i], (float)sum[i] / n[i]);
+            }
+            Console.WriteLine("\nTotal friendship: {0}", (float)s / nodes.Length);
         }
     }
 }

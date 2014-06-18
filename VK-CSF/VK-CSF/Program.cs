@@ -18,6 +18,8 @@ namespace VK_CSF
             vk.IsolatedGroups();
             Console.WriteLine("\n===== Maximum length =====");
             vk.MaxLength();
+            Console.WriteLine("\n===== Friendship =====");
+            vk.Friendship();
             Console.ReadKey();
         }
     }
